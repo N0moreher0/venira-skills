@@ -6,7 +6,14 @@
         "-y",
         "venira-mcp@latest"
       ],
-      "env": {},
+      "env": {
+        "VENIRA_TOOL_MODE": "default",
+        "VENIRA_SECURITY_PROFILE": "balanced",
+        "VENIRA_OUTPUT_MODE": "compact",
+        "VENIRA_UNRESTRICTED": "0",
+        "VENIRA_JS_EXEC_MODE": "off",
+        "VENIRA_ALLOW_SELF_INSTALL": "0"
+      },
       "disabled": false,
       "autoApprove": []
     }
