@@ -1,6 +1,6 @@
-# Local MCP setup (manual, separate from the plugin)
+# Manual MCP setup (instead of the plugin's bundled server)
 
-The `venira-mcp` plugin (`.claude-plugin/`) ships **skills only**. The MCP server is deliberately NOT bundled: if you already have a manual venira entry in your client config, installing the plugin must not spawn a second server.
+The plugin bundles the venira-mcp server for end users (`npx -y venira-mcp@latest`). You only need this file if you **develop the server on this machine** and want clients to talk to your local `dist/server.js` instead — install one or the other, never both.
 
 Install the MCP **once per client**, manually, using one of the two options below.
 
@@ -26,7 +26,8 @@ Config location:
         "VENIRA_OUTPUT_MODE": "compact",
         "VENIRA_UNRESTRICTED": "0",
         "VENIRA_JS_EXEC_MODE": "off",
-        "VENIRA_ALLOW_SELF_INSTALL": "0"
+        "VENIRA_ALLOW_SELF_INSTALL": "0",
+        "VENIRA_DYNAMIC_WORKSPACE": "1"
       }
     }
   }
@@ -73,7 +74,7 @@ or the same JSON block with:
 "args": ["-y", "venira-mcp@latest"],
 ```
 
-Same env defaults as Option A apply (`default` / `balanced` / `compact`, JS exec off, self-install off).
+Same env defaults as Option A apply (`default` / `balanced` / `compact`, JS exec off, self-install off, `DYNAMIC_WORKSPACE=1`).
 
 ## Rules
 

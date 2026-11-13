@@ -4,13 +4,13 @@
     "name": "N0moreher0",
     "url": "https://github.com/N0moreher0"
   },
-  "description": "Marketplace for the venira-skills plugin: the four Venira coding-agent skills, nothing else. The venira-mcp MCP server is installed separately.",
+  "description": "Marketplace for venira-mcp: the full bundle (MCP server + four skills) in one plugin.",
   "plugins": [
     {
       "name": "venira-mcp",
       "source": "./",
-      "description": "Four skills: coding workflow, adding tools, CI debugging, git/PR. Skills only; install the venira-mcp MCP server separately.",
-      "version": "1.22.0",
+      "description": "Venira MCP server (files, search, shell, git, CI, PRs, checkpoints) plus all four skills, one install.",
+      "version": "1.23.0",
       "author": {
         "name": "N0moreher0",
         "url": "https://github.com/N0moreher0"
