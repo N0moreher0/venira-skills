@@ -63,6 +63,8 @@ Compress-Archive -Path .\skills,.\.claude-plugin,.\.mcp.json,.\README.md,.\LICEN
 
 This writes `AGENTS.md` (opencode + Codex), `GEMINI.md` (Antigravity / Gemini CLI), and mirrors the four skills into `~/.claude/skills/`. The skills-only mirror is fine for clients that do not support plugins; for clients that do (Claude Desktop / Cowork / Claude Code) the plugin route above is the single install that covers both the server and the skills.
 
+For Claude Frontend / Cowork GUI upload, a pre-built plugin bundle is at `venira-mcp.plugin` (git-ignored; rebuild with: `Compress-Archive -Path @('.claude-plugin','skills','.mcp.json','README.md','LICENSE') -DestinationPath venira-mcp.plugin -Force`).
+
 ## Repo layout
 
 ```
