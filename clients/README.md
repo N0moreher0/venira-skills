@@ -11,6 +11,19 @@
 | **Generic MCP / other LLMs** | no skill mechanism; paste instructions into the system prompt | your client's instructions/system prompt | manually paste `clients/opencode/AGENTS.md` |
 | **venira-mcp server** | skills are *not* tools; the MCP server only exposes `project_*`. Installing here means the *agent using the server* behaves the same on every client | n/a | see the table above |
 
+## How the `.skill` upload actually works
+
+Each `.skill` is a **single skill**: a zip archive containing exactly one `SKILL.md` (frontmatter `name` + `description`, then the body). Claude's upload UI accepts one file per action — so you upload each of the four files separately. That is not a limit of these skills; it is the format.
+
+```text
+venira-coding-workflow.skill        upload once
+venira-add-tool.skill               upload once
+venira-debug-ci.skill               upload once
+venira-git-pr.skill                 upload once
+```
+
+If you want everything in one skill, that is technically possible (merge the four `SKILL.md` into one with one `name`/`description`) — but don't: Claude picks skills by matching the task to `description`, and one merged skill fires for everything, so you lose the targeted activation each of the four is designed for.
+
 Notes per target:
 
 - **opencode / codex** share one file: `<repo>/AGENTS.md`. The marked block is replaced on reruns, so re-running the installer after a skill update is safe and does not touch anything outside the markers.
