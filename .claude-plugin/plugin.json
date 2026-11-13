@@ -1,8 +1,8 @@
 {
   "name": "venira-mcp",
-  "displayName": "Venira MCP",
+  "displayName": "Venira Skills",
   "version": "1.22.0",
-  "description": "Venira coding-agent tooling: project tools via the venira-mcp MCP server (git, CI, PRs, apply-patch, templates) plus four skills that teach any client how to use them end to end.",
+  "description": "Four skills that teach any Claude client the Venira coding-agent workflow (orient, checkpoint, edit, verify, roll back). Skills only - the venira-mcp MCP server is installed separately and is intentionally NOT bundled, so it never duplicates a manually configured local MCP.",
   "author": {
     "name": "N0moreher0",
     "url": "https://github.com/N0moreher0"
@@ -10,5 +10,5 @@
   "homepage": "https://github.com/N0moreher0/Venira-mcp",
   "repository": "https://github.com/N0moreher0/Venira-mcp",
   "license": "AGPL-3.0-only",
-  "keywords": ["venira", "mcp", "git", "ci", "coding-agent"]
+  "keywords": ["venira", "skills", "git", "ci", "coding-agent"]
 }

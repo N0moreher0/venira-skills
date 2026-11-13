@@ -1,13 +1,13 @@
-# Venira MCP Skills
+# Venira Skills
 
-Four Anthropic-style skills, the venira-mcp MCP server (53 callable tools: git, CI, PRs, apply-patch, world-class shell), and the whole bundle packaged as a plugin.
+Four Anthropic-style skills teaching any Claude client the Venira coding-agent workflow. This repo packages the skills; the **venira-mcp MCP server is installed separately** and is intentionally not bundled, so it never duplicates a manually configured local MCP.
 
 | Shape | Use | Path |
 |---|---|---|
 | `skills/<name>/SKILL.md` | Claude Code / Cowork plugin | repo root |
-| `.claude-plugin/plugin.json` | plugin manifest | repo root |
+| `.claude-plugin/plugin.json` | plugin manifest (skills only) | repo root |
 | `.claude-plugin/marketplace.json` | install catalog (no git host needed) | repo root |
-| `.mcp.json` | bundled MCP server connector (`npx -y venira-mcp@latest`) | repo root |
+| `local-mcp/` | manual MCP setup guide (local build preferred, npm option) | repo root |
 | `clients/` | opencode / Codex / Antigravity instructions (drop-in) | repo root |
 | `install/` | one-command installer for non-plugin clients | repo root |
 | `<name>.skill` | claude.ai GUI upload | repo root |
@@ -21,7 +21,7 @@ Four Anthropic-style skills, the venira-mcp MCP server (53 callable tools: git, 
 | `venira-debug-ci` | diagnose a red build, test or CI run from logs |
 | `venira-git-pr` | commit, branch, push, open/maintain a PR, merge |
 
-## Install — Claude Code (one install: server + skills)
+## Install — Claude Code (skills via plugin; MCP separately)
 
 ```powershell
 cd G:\Venira\Venira-mcp-skills
@@ -29,7 +29,7 @@ claude plugin marketplace add ./              # repo is its own marketplace
 claude plugin install venira-mcp@venira-skills
 ```
 
-The plugin carries 4 skills and a local stdio entry for `venira-mcp@latest` from npm — everything appears after one install. No per-project setup.
+The plugin carries the four skills only. Install the venira-mcp server once per client as described in [`local-mcp/README.md`](local-mcp/README.md) (local `dist/server.js` recommended; `npx -y venira-mcp@latest` for machines without the repo). Installing both does **not** duplicate anything, because the plugin registers no MCP connector.
 
 Uninstall:
 
@@ -38,7 +38,7 @@ claude plugin uninstall venira-mcp@venira-skills
 claude plugin marketplace remove venira-skills
 ```
 
-## Install — Claude Desktop / Cowork (one install)
+## Install — Claude Desktop / Cowork GUI upload
 
 Same files. Either drop the folder into the app via **Add > Upload plugin** (accepts a `.zip` or `.plugin`; zip the folder first) or place it in the per-org plugins directory:
 
@@ -47,12 +47,12 @@ Same files. Either drop the folder into the app via **Add > Upload plugin** (acc
 | macOS | `/Library/Application Support/Claude/org-plugins/venira-mcp/` |
 | Windows | `C:\Program Files\Claude\org-plugins\venira-mcp\` |
 
-Cowork sessions will see all four skills, and the MCP connector will be available from the Connectors tab after sign-in. No npx pre-install needed.
+Cowork sessions will see all four skills. The venira-mcp connector is **not** part of the plugin — configure it manually in `claude_desktop_config.json` per [`local-mcp/README.md`](local-mcp/README.md).
 
 Zip first (Windows):
 
 ```powershell
-Compress-Archive -Path .\skills,.\.claude-plugin,.\.mcp.json,.\README.md,.\LICENSE -DestinationPath venira-mcp.plugin -Force
+Compress-Archive -Path .\skills,.\.claude-plugin,.\local-mcp,.\README.md,.\LICENSE -DestinationPath venira-mcp.plugin -Force
 ```
 
 ## Install — everything else
@@ -61,16 +61,16 @@ Compress-Archive -Path .\skills,.\.claude-plugin,.\.mcp.json,.\README.md,.\LICEN
 .\install\install.ps1 -Client all -Apply -Path C:\path\to\project
 ```
 
-This writes `AGENTS.md` (opencode + Codex), `GEMINI.md` (Antigravity / Gemini CLI), and mirrors the four skills into `~/.claude/skills/`. The skills-only mirror is fine for clients that do not support plugins; for clients that do (Claude Desktop / Cowork / Claude Code) the plugin route above is the single install that covers both the server and the skills.
+This writes `AGENTS.md` (opencode + Codex), `GEMINI.md` (Antigravity / Gemini CLI), and mirrors the four skills into `~/.claude/skills/`. For the MCP server, see [`local-mcp/README.md`](local-mcp/README.md).
 
-For Claude Frontend / Cowork GUI upload, a pre-built plugin bundle is at `venira-mcp.plugin` (git-ignored; rebuild with: `Compress-Archive -Path @('.claude-plugin','skills','.mcp.json','README.md','LICENSE') -DestinationPath venira-mcp.plugin -Force`).
+For Claude Desktop / Cowork GUI upload, a pre-built plugin bundle is at `venira-mcp.plugin` (git-ignored; rebuild with: `Compress-Archive -Path @('.claude-plugin','skills','local-mcp','README.md','LICENSE') -DestinationPath venira-mcp.plugin -Force`).
 
 ## Repo layout
 
 ```
 skills/<name>/SKILL.md      source of truth (edit these; clients/ and .skill are built)
-.claude-plugin/             plugin.json + marketplace.json (install via `claude plugin install venira-mcp@venira-skills`)
-.mcp.json                   bundled MCP server connector
+.claude-plugin/             plugin.json + marketplace.json (skills-only plugin)
+local-mcp/                  manual MCP setup guide, separate from the plugin
 clients/                    per-client artefacts (AGENTS.md / GEMINI.md)
 install/install.ps1         installer for opencode / Codex / Antigravity / Claude Code (skills-only)
 build-clients.ps1           rebuild clients/ from skills/ (run after editing skills/)
