@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "venira-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "venira-mcp@latest"
+      ],
+      "env": {},
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}

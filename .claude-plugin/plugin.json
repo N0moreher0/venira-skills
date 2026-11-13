@@ -1,0 +1,14 @@
+{
+  "name": "venira-mcp",
+  "displayName": "Venira MCP",
+  "version": "1.22.0",
+  "description": "Venira coding-agent tooling: project tools via the venira-mcp MCP server (git, CI, PRs, apply-patch, templates) plus four skills that teach any client how to use them end to end.",
+  "author": {
+    "name": "N0moreher0",
+    "url": "https://github.com/N0moreher0"
+  },
+  "homepage": "https://github.com/N0moreher0/Venira-mcp",
+  "repository": "https://github.com/N0moreher0/Venira-mcp",
+  "license": "AGPL-3.0-only",
+  "keywords": ["venira", "mcp", "git", "ci", "coding-agent"]
+}

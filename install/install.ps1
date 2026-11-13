@@ -101,7 +101,7 @@ if ($selected -contains 'claude-code') {
   $dest = Join-Path $HOME '.claude\skills'
   if ($Apply) {
     New-Item -ItemType Directory -Force $dest | Out-Null
-    foreach ($skill in (Get-ChildItem (Join-Path $skillsRoot 'src') -Directory)) {
+    foreach ($skill in (Get-ChildItem (Join-Path $skillsRoot 'skills') -Directory)) {
       $skillDest = Join-Path $dest $skill.Name
       if (Test-Path $skillDest) { Remove-Item $skillDest -Recurse -Force }
       New-Item -ItemType Directory -Force $skillDest | Out-Null
@@ -109,7 +109,7 @@ if ($selected -contains 'claude-code') {
       Write-Host "  claude-code: installed $($skill.Name)"
     }
   } else {
-    Write-Host "  claude-code: would mirror $skillsRoot\src -> $dest (4 skills, overwriting)"
+    Write-Host "  claude-code: would mirror $skillsRoot\skills -> $dest (4 skills, overwriting)"
   }
 }
 
