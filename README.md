@@ -32,7 +32,7 @@ claude plugin marketplace add ./
 claude plugin install venira-mcp@venira-skills
 ```
 
-The plugin carries the four skills and a stdio MCP entry for `venira-mcp@latest` with an end-user-safe default env (`TOOL_MODE=default`, `SECURITY_PROFILE=balanced`, `OUTPUT_MODE=compact`, `JS_EXEC_MODE=off`, `UNRESTRICTED=0`, `ALLOW_SELF_INSTALL=0`, `DYNAMIC_WORKSPACE=1`). With `VENIRA_DYNAMIC_WORKSPACE=1` the agent can call `project_switch_workspace` to re-root the server to whatever project folder is active — no client restart needed.
+The plugin carries the four skills and a stdio MCP entry for `venira-mcp@latest` with an end-user-safe default env (`TOOL_MODE=default`, `SECURITY_PROFILE=balanced`, `OUTPUT_MODE=compact`, `JS_EXEC_MODE=off`, `UNRESTRICTED=0`, `ALLOW_SELF_INSTALL=0`, `DYNAMIC_WORKSPACE=1`). With `VENIRA_DYNAMIC_WORKSPACE=1` the agent can call `switch_workspace` to re-root the server to whatever project folder is active — no client restart needed.
 
 If you develop the server itself on this machine, prefer the manual local install instead and do not install both: see [`local-mcp/README.md`](local-mcp/README.md).
 
@@ -86,15 +86,15 @@ clients/README.md           per-client matrix
 
 ## Rules every skill assumes
 
-- Tool names are written as the stable part (`project_read_file`); the client may prefix them (e.g. `mcp__venira__project_read_file`).
+- Tool names are written as the stable part (`read_file`); the client may prefix them (e.g. `mcp__venira__read_file`).
 - Plain fast-forward `git push` is allowed without approval; force/delete/URL pushes still need one.
-- Decisions are cached; external edits bypass the cache, so call `project_cache_clear` after touching files outside the server.
+- Decisions are cached; external edits bypass the cache, so call `cache_clear` after touching files outside the server.
 - Snapshots carry the recovery path; `action=restore` with `dry_run=1` first, `paths` to restore a subset.
 - Approvals are human-only; a skill never grants one itself.
 
 ## Updating a skill
 
-1. Edit `skills/<name>/SKILL.md`. Tool names must stay spelled `project_*` and exist in `TOOL_DOCS` of the server (`tools/project-docs.ts`) or the skill will read as documentation for something that isn't there.
+1. Edit `skills/<name>/SKILL.md`. Tool names must stay spelled without the `project_` prefix (e.g. `read_file`) and exist in `TOOL_DOCS` of the server (`tools/project-docs.ts`) or the skill will read as documentation for something that isn't there.
 2. `.\rebuild.ps1 -Verify` — repack and SHA-256 check the `.skill` zips.
 3. `.\build-clients.ps1` — rebuild `clients/` (opencode / Codex / Antigravity).
 4. Anything already installed locally needs re-running (`install/install.ps1 -Apply`) or reinstalling the plugin to pick up the update.

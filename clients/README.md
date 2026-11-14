@@ -10,7 +10,7 @@
 | **Claude Code (skills only, no plugin)** | Claude Code discovers personal skills in `~/.claude/skills/<name>/SKILL.md` | `~/.claude/skills/venira-*/SKILL.md` | `install\install.ps1 -Client claude-code -Apply` |
 | **Claude.ai web / desktop (no plugin)** | Customize → Skills → upload each `.skill` | claude.ai/settings or app GUI | manual upload (one-time) |
 | **Generic MCP / other LLMs** | no skill mechanism; paste instructions into the system prompt | your client's instructions/system prompt | manually paste `clients/opencode/AGENTS.md` |
-| **venira-mcp server** | skills are *not* tools; the MCP server only exposes `project_*`. The plugin bundles it for end users (`npx venira-mcp@latest`); this file covers the manual route, which server developers should prefer | see above | see above |
+| **venira-mcp server** | skills are *not* tools; the MCP server exposes the bare, unprefixed tool names. The plugin bundles it for end users (`npx venira-mcp@latest`); this file covers the manual route, which server developers should prefer | see above | see above |
 
 Notes per target:
 

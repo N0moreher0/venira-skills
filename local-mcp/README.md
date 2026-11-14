@@ -79,5 +79,5 @@ Same env defaults as Option A apply (`default` / `balanced` / `compact`, JS exec
 ## Rules
 
 - Keep exactly ONE venira MCP entry per client. If the plugin ever grows an MCP connector again, remove the manual entry instead of running both.
-- Skills (via the plugin or `~/.claude/skills/`) and the MCP server are independent: skills teach the workflow, the server exposes `project_*`.
+- Skills (via the plugin or `~/.claude/skills/`) and the MCP server are independent: skills teach the workflow, the server exposes the bare, unprefixed tool names.
 - After updating the server repo (`git pull` + `npm run build`), a manual local install picks up changes on the client's next launch — the plugin route would not.

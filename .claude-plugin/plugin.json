@@ -2,7 +2,7 @@
   "name": "venira-mcp",
   "displayName": "Venira MCP",
   "version": "1.24.0",
-  "description": "The full Venira coding-agent bundle: the venira-mcp MCP server (files, search, shell, git, CI, PRs, checkpoints, audit) plus four skills that teach any Claude client the workflow. One install gives both the tools and the discipline. The server runs as npx venira-mcp@latest with balanced/compact defaults and VENIRA_DYNAMIC_WORKSPACE=1, so project_switch_workspace can re-root it to whatever project folder is active.",
+  "description": "The full Venira coding-agent bundle: the venira-mcp MCP server (files, search, shell, git, CI, PRs, checkpoints, audit) plus four skills that teach any Claude client the workflow. One install gives both the tools and the discipline. The server runs as npx venira-mcp@latest with balanced/compact defaults and VENIRA_DYNAMIC_WORKSPACE=1, so switch_workspace can re-root it to whatever project folder is active.",
   "author": {
     "name": "N0moreher0",
     "url": "https://github.com/N0moreher0"
