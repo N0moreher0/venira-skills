@@ -5,7 +5,7 @@ description: Use the `memory` tool well - read the workspace handoff note at the
 
 # Venira memory handoff
 
-`memory` is one markdown file per workspace that outlives the chat window. The AI that is about to run out of context overwrites it; the next AI reads it first and picks up where the previous one stopped. It is plain text on disk in the data dir — a human can open or edit it too. One note per workspace, always replaced wholesale, never appended.
+`memory` is one markdown file per workspace that outlives the chat window. The AI that is about to run out of context overwrites it; the next AI reads it first and picks up where the previous one stopped. It is plain text on disk at `<workspace>/.venira/memory.md` — a human can open or edit it too. One note per workspace, always replaced wholesale, never appended. (Notes written before v4.4.0 live in the data dir and are still read as a fallback; the next write moves them into `<workspace>/.venira/memory.md`.) Add `.venira/` to `.gitignore` if you do not want the note committed.
 
 Clients may prefix tool names (for example `mcp__venira__memory`). The tool name (without the server prefix) is the stable name.
 
