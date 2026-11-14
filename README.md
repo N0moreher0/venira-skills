@@ -1,6 +1,6 @@
 # Venira Skills
 
-The full Venira coding-agent bundle: four Anthropic-style skills plus the venira-mcp MCP server (files, search, shell, git, CI, PRs, checkpoints, audit — 38 tools in `default` mode), packaged as a plugin. One install gives a client both the tools and the workflow discipline.
+The full Venira coding-agent bundle: five Anthropic-style skills plus the venira-mcp MCP server (files, search, shell, git, CI, PRs, checkpoints, audit — 38 tools in `default` mode), packaged as a plugin. One install gives a client both the tools and the workflow discipline.
 
 | Shape | Use | Path |
 |---|---|---|
@@ -21,6 +21,7 @@ The full Venira coding-agent bundle: four Anthropic-style skills plus the venira
 | `venira-add-tool` | add/extend/register a tool in the server |
 | `venira-debug-ci` | diagnose a red build, test or CI run from logs |
 | `venira-git-pr` | commit, branch, push, open/maintain a PR, merge |
+| `venira-memory` | read the workspace handoff note at the start, write it before you finish or run out of context |
 
 ## Install — Claude Code (one install: server + skills)
 
@@ -32,7 +33,7 @@ claude plugin marketplace add ./
 claude plugin install venira-mcp@venira-skills
 ```
 
-The plugin carries the four skills and a stdio MCP entry for `venira-mcp@latest` with an end-user-safe default env (`TOOL_MODE=default`, `SECURITY_PROFILE=balanced`, `OUTPUT_MODE=compact`, `JS_EXEC_MODE=off`, `UNRESTRICTED=0`, `ALLOW_SELF_INSTALL=0`, `DYNAMIC_WORKSPACE=1`). With `VENIRA_DYNAMIC_WORKSPACE=1` the agent can call `switch_workspace` to re-root the server to whatever project folder is active — no client restart needed.
+The plugin carries the five skills and a stdio MCP entry for `venira-mcp@latest` with an end-user-safe default env (`TOOL_MODE=default`, `SECURITY_PROFILE=balanced`, `OUTPUT_MODE=compact`, `JS_EXEC_MODE=off`, `UNRESTRICTED=0`, `ALLOW_SELF_INSTALL=0`, `DYNAMIC_WORKSPACE=1`). With `VENIRA_DYNAMIC_WORKSPACE=1` the agent can call `switch_workspace` to re-root the server to whatever project folder is active — no client restart needed.
 
 If you develop the server itself on this machine, prefer the manual local install instead and do not install both: see [`local-mcp/README.md`](local-mcp/README.md).
 
@@ -52,7 +53,7 @@ Same files. Either drop the folder into the app via **Add > Upload plugin** (acc
 | macOS | `/Library/Application Support/Claude/org-plugins/venira-mcp/` |
 | Windows | `C:\Program Files\Claude\org-plugins\venira-mcp\` |
 
-Cowork sessions will see all four skills, and the `venira-mcp` connector will be available from the Connectors tab after sign-in. No per-machine npm pre-install is needed — the connector runs `npx -y venira-mcp@latest` (Node ≥ 20 required).
+Cowork sessions will see all five skills, and the `venira-mcp` connector will be available from the Connectors tab after sign-in. No per-machine npm pre-install is needed — the connector runs `npx -y venira-mcp@latest` (Node ≥ 20 required).
 
 Zip first (Windows):
 
@@ -66,7 +67,7 @@ Compress-Archive -Path .\skills,.\.claude-plugin,.\.mcp.json,.\local-mcp,.\READM
 .\install\install.ps1 -Client all -Apply -Path C:\path\to\project
 ```
 
-This writes `AGENTS.md` (opencode + Codex), `GEMINI.md` (Antigravity / Gemini CLI), and mirrors the four skills into `~/.claude/skills/`. For the MCP server on those clients, follow [`local-mcp/README.md`](local-mcp/README.md).
+This writes `AGENTS.md` (opencode + Codex), `GEMINI.md` (Antigravity / Gemini CLI), and mirrors the five skills into `~/.claude/skills/`. For the MCP server on those clients, follow [`local-mcp/README.md`](local-mcp/README.md).
 
 For Claude Desktop / Cowork GUI upload, a pre-built plugin bundle is at `venira-mcp.plugin` (git-ignored; rebuild with: `Compress-Archive -Path @('.claude-plugin','skills','.mcp.json','local-mcp','README.md','LICENSE') -DestinationPath venira-mcp.plugin -Force`).
 

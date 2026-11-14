@@ -2,7 +2,7 @@
 
 | Client | How the skills activate | Target file | Installed by |
 |---|---|---|---|
-| **Claude Code + plugin** | one install: plugin carries the four skills and the MCP connector (`npx venira-mcp@latest`) | `<repo-root>\` as a marketplace | `claude plugin marketplace add ./ && claude plugin install venira-mcp@venira-skills` |
+| **Claude Code + plugin** | one install: plugin carries the five skills and the MCP connector (`npx venira-mcp@latest`) | `<repo-root>\` as a marketplace | `claude plugin marketplace add ./ && claude plugin install venira-mcp@venira-skills` |
 | **Claude Desktop / Cowork** | Add > Upload plugin (.zip or .plugin), or per-org plugin directory | app GUI | manual upload or org-plugins dir |
 | **opencode** | opencode loads `AGENTS.md` from the project root (or a parent dir) as standing instructions | `<repo>/AGENTS.md` | `install\install.ps1 -Client opencode -Apply -Path <repo>` |
 | **Codex CLI** | codex loads `AGENTS.md` from the current directory upward | `<repo>/AGENTS.md` | `install\install.ps1 -Client codex -Apply -Path <repo>` |
@@ -27,7 +27,7 @@ cd G:\Venira\Venira-mcp-skills
 .\install\install.ps1 -Client all -Apply -Path C:\path\to\project
 ```
 
-It writes `AGENTS.md` (opencode + Codex), `GEMINI.md` (Antigravity / Gemini CLI), and mirrors the four skills into `~/.claude/skills/`. For Claude Code / Desktop, install the plugin once — it covers both the skills and the MCP server, and you are done (unless you develop the server on this machine, in which case see [local-mcp/README.md](../local-mcp/README.md)).
+It writes `AGENTS.md` (opencode + Codex), `GEMINI.md` (Antigravity / Gemini CLI), and mirrors the five skills into `~/.claude/skills/`. For Claude Code / Desktop, install the plugin once — it covers both the skills and the MCP server, and you are done (unless you develop the server on this machine, in which case see [local-mcp/README.md](../local-mcp/README.md)).
 
 ## Checking it works
 

@@ -20,6 +20,7 @@ Clients may prefix tool names (for example `mcp__venira__read_file`). The tool n
 
 ## 1. Orient
 
+- `memory` `action=read` (after `recent_files`): if a handoff note exists for this workspace, read it first — it is the previous AI's goal, decisions, files touched and next steps. `exists=false` is normal on a first run; start the task normally and leave a note before you finish.
 - `recent_files` (depth 2-3, limit 20-30) shows what moved lately and which files are in play.
 - In an unfamiliar area, `plan_read_batch` with a one-line task description, then run the `read_batch` it proposes (max 8 files per call).
 - For big files use `outline_symbol` first, then `read_file` with `start_line`/`end_line` or `ranges`.
@@ -75,5 +76,7 @@ Before changing a shared symbol, signature or file name, run `change_impact` (pa
 A `trimmed` flag or "Output mode compact" hint only means the payload was shortened. It is not an error.
 
 ## Final report
+
+Before the report, `memory` `action=write` the handoff note: goal, decisions made, files touched, next steps (plain markdown, max 6000 bytes, replaces the previous note). Skip it only for a trivial one-shot task with nothing worth handing off. No secrets in the note.
 
 Keep it short and factual: files changed, snapshot id (if any), checks run and their result, and anything left undone or assumed.

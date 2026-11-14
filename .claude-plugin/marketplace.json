@@ -4,13 +4,13 @@
     "name": "N0moreher0",
     "url": "https://github.com/N0moreher0"
   },
-  "description": "Marketplace for venira-mcp: the full bundle (MCP server + four skills) in one plugin.",
+  "description": "Marketplace for venira-mcp: the full bundle (MCP server + five skills) in one plugin.",
   "plugins": [
     {
       "name": "venira-mcp",
       "source": "./",
-      "description": "Venira MCP server (files, search, shell, git, CI, PRs, checkpoints) plus all four skills, one install.",
-      "version": "1.24.0",
+      "description": "Venira MCP server (files, search, shell, git, CI, PRs, checkpoints) plus all five skills, one install.",
+      "version": "1.26.0",
       "author": {
         "name": "N0moreher0",
         "url": "https://github.com/N0moreher0"
