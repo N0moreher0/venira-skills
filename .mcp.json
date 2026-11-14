@@ -12,8 +12,7 @@
         "VENIRA_OUTPUT_MODE": "compact",
         "VENIRA_UNRESTRICTED": "0",
         "VENIRA_JS_EXEC_MODE": "off",
-        "VENIRA_ALLOW_SELF_INSTALL": "0",
-        "VENIRA_DYNAMIC_WORKSPACE": "1"
+        "VENIRA_ALLOW_SELF_INSTALL": "0"
       },
       "disabled": false,
       "autoApprove": []

@@ -33,7 +33,7 @@ claude plugin marketplace add ./
 claude plugin install venira-mcp@venira-skills
 ```
 
-The plugin carries the five skills and a stdio MCP entry for `venira-mcp@latest` with an end-user-safe default env (`TOOL_MODE=default`, `SECURITY_PROFILE=balanced`, `OUTPUT_MODE=compact`, `JS_EXEC_MODE=off`, `UNRESTRICTED=0`, `ALLOW_SELF_INSTALL=0`, `DYNAMIC_WORKSPACE=1`). With `VENIRA_DYNAMIC_WORKSPACE=1` the agent can call `switch_workspace` to re-root the server to whatever project folder is active — no client restart needed.
+The plugin carries the five skills and a stdio MCP entry for `venira-mcp@latest` with an end-user-safe default env (`TOOL_MODE=default`, `SECURITY_PROFILE=balanced`, `OUTPUT_MODE=compact`, `JS_EXEC_MODE=off`, `UNRESTRICTED=0`, `ALLOW_SELF_INSTALL=0`). `switch_workspace` follows `VENIRA_SECURITY_PROFILE`: under `balanced` (the default) it switches only inside `VENIRA_WORKSPACE_ROOTS` (unset = locked to the spawn workspace); under `trusted`/`off` it switches to any existing directory — no client restart needed in either case.
 
 If you develop the server itself on this machine, prefer the manual local install instead and do not install both: see [`local-mcp/README.md`](local-mcp/README.md).
 

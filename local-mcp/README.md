@@ -27,12 +27,14 @@ Config location:
         "VENIRA_UNRESTRICTED": "0",
         "VENIRA_JS_EXEC_MODE": "off",
         "VENIRA_ALLOW_SELF_INSTALL": "0",
-        "VENIRA_DYNAMIC_WORKSPACE": "1"
+        "VENIRA_WORKSPACE_ROOTS": "G:\\\\Venira"
       }
     }
   }
 }
 ```
+
+`switch_workspace` follows `VENIRA_SECURITY_PROFILE`: under `balanced` it switches only inside `VENIRA_WORKSPACE_ROOTS` (the example above allows `G:\Venira`; remove it or set `"trusted"` to switch anywhere). Under `trusted`/`off` it switches to any existing directory.
 
 ### Claude Code (user scope)
 
@@ -74,7 +76,7 @@ or the same JSON block with:
 "args": ["-y", "venira-mcp@latest"],
 ```
 
-Same env defaults as Option A apply (`default` / `balanced` / `compact`, JS exec off, self-install off, `DYNAMIC_WORKSPACE=1`).
+Same env defaults as Option A apply (`default` / `balanced` / `compact`, JS exec off, self-install off, `VENIRA_WORKSPACE_ROOTS` set to `G:\\Venira` if you want `switch_workspace` to work there).
 
 ## Rules
 
