@@ -1,8 +1,8 @@
 {
   "name": "venira-mcp",
   "displayName": "Venira MCP",
-  "version": "1.27.0",
-  "description": "The full Venira coding-agent bundle: the venira-mcp MCP server (files, search, shell, git, CI, PRs, checkpoints, audit) plus five skills that teach any Claude client the workflow. One install gives both the tools and the discipline. The server runs as npx venira-mcp@latest with balanced/compact defaults; switch_workspace follows VENIRA_SECURITY_PROFILE and switches only inside VENIRA_WORKSPACE_ROOTS (unset = locked to the spawn workspace), or anywhere under trusted/off.",
+  "version": "1.28.0",
+  "description": "The full Venira coding-agent bundle: the venira-mcp MCP server (files, search, shell, git, CI, PRs, checkpoints, audit) plus five skills that teach any Claude client the workflow. One install gives both the tools and the discipline. The server runs as npx venira-mcp@latest with balanced/compact defaults and the `default` tool mode (31 tools); the PR/CI steps of the git-pr and debug-ci skills need VENIRA_TOOL_MODE=expert. switch_workspace follows VENIRA_SECURITY_PROFILE and switches only inside the roots listed in VENIRA_WORKSPACE (unset = locked to the spawn workspace), or anywhere under trusted/off.",
   "author": {
     "name": "N0moreher0",
     "url": "https://github.com/N0moreher0"

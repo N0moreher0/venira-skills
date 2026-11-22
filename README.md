@@ -1,6 +1,6 @@
 # Venira Skills
 
-The full Venira coding-agent bundle: five Anthropic-style skills plus the venira-mcp MCP server (files, search, shell, git, CI, PRs, checkpoints, audit — 38 tools in `default` mode), packaged as a plugin. One install gives a client both the tools and the workflow discipline.
+The full Venira coding-agent bundle: five Anthropic-style skills plus the venira-mcp MCP server (files, search, shell, git, CI, PRs, checkpoints, audit — `core` 18, `default` 31 or `expert` 44 tools, chosen by `VENIRA_TOOL_MODE`), packaged as a plugin. One install gives a client both the tools and the workflow discipline.
 
 | Shape | Use | Path |
 |---|---|---|
@@ -33,9 +33,13 @@ claude plugin marketplace add ./
 claude plugin install venira-mcp@venira-skills
 ```
 
-The plugin carries the five skills and a stdio MCP entry for `venira-mcp@latest` with an end-user-safe default env (`TOOL_MODE=default`, `SECURITY_PROFILE=balanced`, `OUTPUT_MODE=compact`, `JS_EXEC_MODE=off`, `UNRESTRICTED=0`, `ALLOW_SELF_INSTALL=0`). `switch_workspace` follows `VENIRA_SECURITY_PROFILE`: under `balanced` (the default) it switches only inside `VENIRA_WORKSPACE_ROOTS` (unset = locked to the spawn workspace); under `trusted`/`off` it switches to any existing directory — no client restart needed in either case.
+The plugin carries the five skills and a stdio MCP entry for `venira-mcp@latest` with an end-user-safe default env (`TOOL_MODE=default`, `SECURITY_PROFILE=balanced`, `OUTPUT_MODE=compact`, `JS_EXEC_MODE=off`, `UNRESTRICTED=0`, `ALLOW_SELF_INSTALL=0`). `switch_workspace` follows `VENIRA_SECURITY_PROFILE`: under `balanced` (the default) it switches only inside the roots listed in `VENIRA_WORKSPACE` (absolute paths separated by `;` or `,`, the first one is the workspace root; unset = locked to the spawn workspace); under `trusted`/`off` it switches to any existing directory — no client restart needed in either case.
 
 If you develop the server itself on this machine, prefer the manual local install instead and do not install both: see [`local-mcp/README.md`](local-mcp/README.md).
+
+### Tool modes and the skills
+
+The plugin's connector runs `VENIRA_TOOL_MODE=default` (31 tools). That mode leaves out the PR and CI tools (`pr_*`, `ci_*`) and the diagnostics kit (`explain_error`, `plan_read_batch`), which exist only in `expert` (44 tools). `venira-git-pr` and `venira-debug-ci` use them for the PR and CI steps; without them the skills fall back to local work (`git`, `shell_run`) and say what is missing. To get the full flow, set `VENIRA_TOOL_MODE` to `expert` in the connector's env (and connect a git host: `github_connect` or `GITHUB_TOKEN`). `core` (18 tools) is for small models: no `apply_patch`, `copy_path`, `diff_files`, `symbol_references`, `dependency_graph`, `health` and friends, and the skills name the fallback for each.
 
 Uninstall:
 
@@ -82,20 +86,24 @@ clients/                    per-client artefacts (AGENTS.md / GEMINI.md)
 install/install.ps1         installer for opencode / Codex / Antigravity / Claude Code (skills-only)
 build-clients.ps1           rebuild clients/ from skills/ (run after editing skills/)
 rebuild.ps1                 repack + SHA-256 verify .skill zips
+check-skills.ps1            check the skills against the venira-mcp source (tool names, memory cap, tool counts)
 clients/README.md           per-client matrix
 ```
 
 ## Rules every skill assumes
 
 - Tool names are written as the stable part (`read_file`); the client may prefix them (e.g. `mcp__venira__read_file`).
-- Plain fast-forward `git push` is allowed without approval; force/delete/URL pushes still need one.
+- `git action=push` pushes one branch to a named remote (no force, delete or URL; refused under `strict`). A plain `git push` through `shell_run` is allowed without approval except under `strict`; force/delete/URL pushes still need one in `balanced` and `strict`.
+- Tools differ per mode (`core` 18 / `default` 31 / `expert` 44). When a tool a skill names is not in `tools/list`, the skill says what to do instead; never guess its arguments.
+- The workspace note (`memory`) is capped at 10000 bytes. Pass `if_version` from the last read when writing; a `conflict` means someone else wrote first.
 - Decisions are cached; external edits bypass the cache, so call `cache_clear` after touching files outside the server.
 - Snapshots carry the recovery path; `action=restore` with `dry_run=1` first, `paths` to restore a subset.
 - Approvals are human-only; a skill never grants one itself.
 
 ## Updating a skill
 
-1. Edit `skills/<name>/SKILL.md`. Tool names must stay spelled without the `project_` prefix (e.g. `read_file`) and exist in `TOOL_DOCS` of the server (`tools/project-docs.ts`) or the skill will read as documentation for something that isn't there.
-2. `.\rebuild.ps1 -Verify` — repack and SHA-256 check the `.skill` zips.
-3. `.\build-clients.ps1` — rebuild `clients/` (opencode / Codex / Antigravity).
-4. Anything already installed locally needs re-running (`install/install.ps1 -Apply`) or reinstalling the plugin to pick up the update.
+1. Edit `skills/<name>/SKILL.md` (the file must be named `SKILL.md`; the plugin, `rebuild.ps1`, `build-clients.ps1` and the installer all read that name). Tool names are the bare ones (`read_file`, `git action=push`) and must exist in `TOOL_DOCS` of the server (`tools/project-docs.ts`); do not use removed names (`change_impact`, `read_batch`, `edit_batch`, `project_*`, `VENIRA_WORKSPACE_ROOTS`) or the skill will document something that isn't there.
+2. `.\check-skills.ps1` — compare the skills with the venira-mcp source next to this repo (`-ServerRoot` to point elsewhere).
+3. `.\rebuild.ps1 -Verify` — repack and SHA-256 check the `.skill` zips.
+4. `.\build-clients.ps1` — rebuild `clients/` (opencode / Codex / Antigravity).
+5. Anything already installed locally needs re-running (`install/install.ps1 -Apply`) or reinstalling the plugin to pick up the update.

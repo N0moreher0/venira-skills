@@ -7,7 +7,7 @@ description: Use the `memory` tool well - read the workspace handoff note at the
 
 `memory` is one markdown file per workspace that outlives the chat window. The AI that is about to run out of context overwrites it; the next AI reads it first and picks up where the previous one stopped. It is plain text on disk at `<workspace>/.venira/memory.md` — a human can open or edit it too. One note per workspace, always replaced wholesale, never appended. (Notes written before v4.4.0 live in the data dir and are still read as a fallback; the next write moves them into `<workspace>/.venira/memory.md`.) Add `.venira/` to `.gitignore` if you do not want the note committed.
 
-Clients may prefix tool names (for example `mcp__venira__memory`). The tool name (without the server prefix) is the stable name.
+Clients may prefix tool names (for example `mcp__venira__memory`). The tool name (without the server prefix) is the stable name. `memory` is available in every tool mode, `core` included.
 
 ## When to use
 
@@ -17,12 +17,12 @@ Clients may prefix tool names (for example `mcp__venira__memory`). The tool name
 
 ## Rules
 
-- **`action=read` first, always.** `exists=false` is normal on a first run (you get a hint), start the task normally.
-- **Write = full overwrite.** `content` replaces the whole note; nothing is appended. Empty or missing `content` is refused and the old note is kept.
-- **Cap is 6000 bytes** (UTF-8). Over the cap → `invalid_request`, old note kept. Write tight; cut stale lines rather than cramming.
-- **No secrets, ever.** No API keys, tokens, passwords, connection strings, personal data. The note is unencrypted plain text on disk.
-- **Not for lasting docs or history.** Use `write_file` for docs that belong in the repo, `git_log`/`read_audit` for "what happened". The note is a *handoff scratchpad*, not a file with a future.
-- **No appendix bloat.** A stale block still costs every future session 6000-token-adjacent overhead; rewrite honestly each time.
+- **`action=read` first, always.** `exists=false` is normal on a first run (you get a hint), start the task normally. A read returns `version` (12 hex characters, or `new` while no note exists): keep it.
+- **Write = full overwrite, guarded by `if_version`.** `content` replaces the whole note; nothing is appended. Pass `if_version` set to the `version` from your last read (or last write). If the note changed since, nothing is written and you get `conflict` naming the current version: read again, merge the other session's changes into yours, write with the new version. A successful write returns the new `version`, so consecutive writes need no re-read. Without `if_version` the write overwrites blindly (kept for older clients) and the result hints to pass it.
+- **Cap is 10000 bytes** (UTF-8). Over the cap → `invalid_request`, old note kept. Write tight; cut stale lines rather than cramming. Empty or missing `content` is refused too.
+- **No secrets, ever.** No API keys, tokens, passwords, connection strings, personal data. The note is unencrypted plain text on disk and is not audit-logged.
+- **Not for lasting docs or history.** Use `write_file` for docs that belong in the repo, `git action=log` or `read_audit` for "what happened". The note is a *handoff scratchpad*, not a file with a future.
+- **No appendix bloat.** A stale block costs every future session context; rewrite honestly each time. Other agents may share the note (that is why the cap is 10000), so keep their still-valid lines when you merge.
 
 ## What goes in the note
 
@@ -37,9 +37,9 @@ Plain markdown, in this order, cut whatever does not fit:
 
 ## Workflow
 
-1. Read: `memory` `action=read` → if `exists=true`, skim, then cross-check with `recent_files` / `git_status` before acting on it.
+1. Read: `memory` `action=read` → if `exists=true`, skim, then cross-check with `recent_files` / `git action=status` before acting on it. Remember `version`.
 2. Work normally; update nothing mid-task.
-3. Before the final report (or when you notice context filling): `memory` `action=write` with the six sections. If there is nothing to hand off, skip the write.
+3. Before the final report (or when you notice context filling): `memory` `action=write` with the six sections and `if_version`. On `conflict`, read, merge, write again. If there is nothing to hand off, skip the write.
 4. The final chat report stays short and factual — the note carries the detail, the chat does not need to repeat it.
 
 ## Examples
@@ -78,8 +78,9 @@ Bad note: "worked on the bug, DB fixed, some tests fail, continue later" — use
 
 | Signal | Meaning | Do this |
 |---|---|---|
-| `exists=false` | No note yet | Normal. Start the task, write one at the end |
-| `invalid_request` + "over the 6000 byte cap" | Note too long | Cut stale/verbose sections, rewrite shorter |
-| `invalid_request` + "empty content" | Missing or blank `content` | Write the full note, not an empty placeholder |
-| `invalid_request` + "action must be" | Unknown action | Use `read` or `write` |
+| `exists=false` | No note yet | Normal. Start the task, write one at the end (`if_version=new` is accepted) |
+| `conflict` | The note changed since your read | Nothing was written. Read again, merge, write with the new `version` |
+| `invalid_request` + "over the 10000 byte cap" | Note too long | Cut stale/verbose sections, rewrite shorter |
+| `invalid_request` + "non-empty `content`" | Missing or blank `content` | Write the full note, not an empty placeholder |
+| `invalid_request` + "`if_version` must be a string" | Wrong type | Copy `version` from the read result as text |
 | Note stale vs reality | Files changed since write | Trust the code, not the note; update the note next write |

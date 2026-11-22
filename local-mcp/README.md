@@ -6,7 +6,7 @@ Install the MCP **once per client**, manually, using one of the two options belo
 
 ## Option A — local build (recommended while developing / always up to date)
 
-Requires `G:\Venira\venira-mcp-coding-standalone` built (`npm run build`; `dist/server.js` present) and Node >= 20.
+Requires `G:\Venira\venira-mcp` built (`npm run build`; `dist/server.js` present) and Node >= 20.
 
 ### Claude Desktop / Cowork (`claude_desktop_config.json`)
 
@@ -19,7 +19,7 @@ Config location:
   "mcpServers": {
     "venira": {
       "command": "node",
-      "args": ["G:\\Venira\\venira-mcp-coding-standalone\\dist\\server.js"],
+      "args": ["G:\\Venira\\venira-mcp\\dist\\server.js"],
       "env": {
         "VENIRA_TOOL_MODE": "default",
         "VENIRA_SECURITY_PROFILE": "balanced",
@@ -27,19 +27,19 @@ Config location:
         "VENIRA_UNRESTRICTED": "0",
         "VENIRA_JS_EXEC_MODE": "off",
         "VENIRA_ALLOW_SELF_INSTALL": "0",
-        "VENIRA_WORKSPACE_ROOTS": "G:\\\\Venira"
+        "VENIRA_WORKSPACE": "G:\\Venira"
       }
     }
   }
 }
 ```
 
-`switch_workspace` follows `VENIRA_SECURITY_PROFILE`: under `balanced` it switches only inside `VENIRA_WORKSPACE_ROOTS` (the example above allows `G:\Venira`; remove it or set `"trusted"` to switch anywhere). Under `trusted`/`off` it switches to any existing directory.
+`switch_workspace` follows `VENIRA_SECURITY_PROFILE`: under `balanced` it switches only inside the roots listed in `VENIRA_WORKSPACE` (absolute paths separated by `;` or `,`; the first one is the workspace root; the example above allows `G:\Venira`; remove it or set `"trusted"` to switch anywhere). Under `trusted`/`off` it switches to any existing directory.
 
 ### Claude Code (user scope)
 
 ```powershell
-claude mcp add venira --scope user -- node G:\Venira\venira-mcp-coding-standalone\dist\server.js
+claude mcp add venira --scope user -- node G:\Venira\venira-mcp\dist\server.js
 ```
 
 Or edit `~/.claude.json` / project `.mcp.json` with the same `command`/`args`/`env` block.
@@ -51,7 +51,7 @@ Or edit `~/.claude.json` / project `.mcp.json` with the same `command`/`args`/`e
   "mcp": {
     "venira": {
       "type": "local",
-      "command": ["node", "G:\\Venira\\venira-mcp-coding-standalone\\dist\\server.js"],
+      "command": ["node", "G:\\Venira\\venira-mcp\\dist\\server.js"],
       "environment": {
         "VENIRA_TOOL_MODE": "default",
         "VENIRA_SECURITY_PROFILE": "balanced",
@@ -76,7 +76,7 @@ or the same JSON block with:
 "args": ["-y", "venira-mcp@latest"],
 ```
 
-Same env defaults as Option A apply (`default` / `balanced` / `compact`, JS exec off, self-install off, `VENIRA_WORKSPACE_ROOTS` set to `G:\\Venira` if you want `switch_workspace` to work there).
+Same env defaults as Option A apply (`default` / `balanced` / `compact`, JS exec off, self-install off, `VENIRA_WORKSPACE` set to `G:\\Venira` if you want `switch_workspace` to work there).
 
 ## Rules
 

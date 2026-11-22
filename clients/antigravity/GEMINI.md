@@ -11,35 +11,46 @@ description: End-to-end guide for adding a new tool to a Venira-style MCP server
 
 # Add a tool to the Venira MCP server
 
-New tools must look and behave like the existing ones, because clients and agents rely on consistent descriptions, schemas, and error shapes. Learn the conventions from the code, then copy them.
+New tools must look and behave like the existing ones, because clients and agents rely on consistent descriptions, schemas, and error shapes. Several checks fail CI when a tool is added half-way, so learn the conventions from the code, then copy them.
 
 ## 1. Learn the conventions first
 
-- `recent_files` and `list_files` on the `tools/`, `lib/`, and `scripts/verify/` folders.
-- Read one or two tools close to the new one (for example a small read-only tool and a mutating one) with `read_batch`.
-- Find where tools are registered: `search` (kind `literal_content`) for an existing tool name, and follow it to the registry.
-- Note the helpers the existing tools share: workspace path validation, error codes, audit logging, output-mode trimming.
+- Read the repo's `AGENTS.md` (section "Contracts that break CI") and `README.md` before the first edit. `CONTRIBUTING.md` "Adding a tool" is older: when it disagrees with `AGENTS.md` or the code, follow the code.
+- `recent_files` and `list_files` on the `tools/`, `lib/`, and `scripts/` folders.
+- Tools register in `tools/project-register-<group>.ts` (files, shell, ops, codeintel, workflow, vcs), wired from `tools/project.ts`. Find the neighbours with `search` (kind `literal_content`) for an existing tool name, then read one small read-only tool and one mutating tool with `read_file` (`requests[]`).
+- Note the shared helpers: `config()` and the zod fragments in `tools/project-schema.ts`, envelopes from `lib/output.ts` (`buildEnvelope`, `errorEnvelope`, `batchEnvelope`; never hand-roll one), workspace path validation, audit logging, output-mode trimming.
 
 ## 2. Design the tool
 
-- Name: bare `<verb>_<noun>` (no `project_` prefix), consistent with neighbours.
-- Description: follow the house style seen in existing tools: one line of what it does, then `Use when:`, `Avoid when:`, and `Output:`.
-- Input schema: bounded numbers (min/max), `0/1` flags the way existing tools do them, and an optional `reason` for the audit log if the tool mutates anything.
-- Decide read-only vs mutating up front. Mutating tools need path safety and snapshot or rollback advice in their description.
+- Name: bare `<verb>_<noun>` (no `project_` prefix) or one noun when it has an `action` parameter, like `git`, `snapshot` and `memory`. Prefer folding a variant into an existing tool with `action`: every tool costs schema tokens on every prompt, and `scripts/schema-budget.json` ratchets the ceilings.
+- Description: do not put it in `config()`. The model-facing wording lives in `TOOL_DOCS` (`tools/project-docs.ts`) as `about`, `use`, `avoid` and `out`: one sentence of what it does with the one limit that matters, the trigger, the better sibling tool by name, and the fields the caller reads. Say a thing once. No speed or batch commentary.
+- Input schema (zod v4): bounded numbers (min/max), flags advertised as booleans (`flag01`, `backgroundFlag` in `project-schema.ts`; the parser still accepts `1`/`0`), a non-empty description on every parameter, and an optional `reason` (max 400 characters, audit-logged) on anything that mutates.
+- Decide read-only vs mutating up front. Mutating tools need path safety, the same audit path and cache invalidation as `write_file`, and snapshot or rollback advice in their description.
+- Decide which modes get it. `core` is an allowlist (`CORE_TOOLS` in `tools/project-tool-mode.ts`) and stays small on purpose; `default` is everything except `SHIPPING_EXCLUDES` (PR/CI tools and the diagnostics kit); `expert` has all.
 
 ## 3. Implement
 
-Checkpoint first with `snapshot` (include the registry file, README, and CHANGELOG in `paths`). Then create the tool file with `write_file` (`mode=create`) and register it with `edit_file`. Reuse shared helpers instead of re-implementing path checks or error handling.
+Checkpoint first with `snapshot`, with `paths` covering the registry file, `tools/project-docs.ts`, `tools/project-tool-mode.ts`, `scripts/schema-budget.json`, `scripts/check-docs.ts`, README and CHANGELOG. Then create the tool code with `write_file` (`mode=create`) and register it with `edit_file`. Reuse shared helpers instead of re-implementing path checks or error handling. ESM: relative imports end in `.js` even though the source is `.ts`. Any script under `scripts/` that touches `VENIRA_*` must `import "./clean-env.js"` first.
 
-## 4. Verify
+## 4. Contracts CI enforces
 
-- Add a case to the matching script under `scripts/verify/` (or a dedicated test script) covering success, a not-found or invalid input, and any size limits.
-- Run the type-check/build and the verify script with `shell_run`. Feed failures to `explain_error`.
-- Run the project's doctor or consistency script if one exists, since it often cross-checks the tool list against docs.
+1. Registered in the right `tools/project-register-*.ts` through `config()`.
+2. A `TOOL_DOCS` entry in `tools/project-docs.ts` (`test:tool-schema` fails without it).
+3. Its `tools/list` size recorded in `scripts/schema-budget.json`: `npm run test:schema-budget -- --update --allow-increase`. A tool with no ceiling fails, and ceilings otherwise only ratchet down.
+4. Tool counts changed: update the README count strings and `EXPECTED_DEFAULT_TOOLS` / `EXPECTED_EXPERT_TOOLS` in `scripts/check-docs.ts` together (`check:docs` fails otherwise). A new `core` tool also changes the core count.
+5. A new `VENIRA_*` variable goes into `ENV_REGISTRY` (`lib/env-registry.ts`) and the README env table.
+6. If it belongs in the agent flow, one line in the `INSTRUCTIONS` block of `server.ts`.
+7. Releasing: the version must agree in `package.json`, `package-lock.json` (`version` and `packages[""].version`), `server.json` (`version` and `packages[]`) and `lib/version.ts`.
 
-## 5. Document
+## 5. Verify
 
-Update the README tool list and add a CHANGELOG entry. Then review everything with `git_diff` and report: tool name, files touched, snapshot id, and which checks passed.
+- Add a check to the matching section under `scripts/verify/`, or a dedicated `scripts/test-<name>.ts` with a `test:<name>` script in `package.json`, and wire it into the `verify` chain. Cover success, a not-found or invalid input, and any size limits.
+- `npm run build` first: `scripts/verify.ts` and `scripts/doctor.ts` launch `node dist/server.js`, so they test the build, not your source. Then `npx tsc --noEmit`, the narrowest `npm run test:<name>`, and finally `npm run check:docs`, `npm run check:source-shape` and `npm run verify`. Run `npm run doctor` on host-sensitive changes. Use `shell_run` and read `command_status` and `exit_code`; feed failures to `explain_error` when it is in your tool list (expert mode).
+- Remember that a running MCP client keeps serving the old build until it restarts.
+
+## 6. Document and report
+
+Update the README tool table and the section for the tool's family, and add a CHANGELOG entry (schema budget changes included). Then review everything with `git action=diff` and report: tool name, files touched, snapshot id, and which checks passed.
 
 <!-- /venira-skill:venira-add-tool -->
 
@@ -55,22 +66,35 @@ Venira tools make edits auditable and reversible. Follow this loop so every chan
 
 Clients may prefix tool names (for example `mcp__venira__read_file`). The tool name (without the server prefix) is the stable name.
 
+## Which tools you actually have
+
+`tools/list` depends on `VENIRA_TOOL_MODE`: `core` (18 tools, for small models), `default` (31 tools, the full coding toolset) or `expert` (44 tools, adds PR/CI and the diagnostics kit). `VENIRA_JS_EXEC_MODE=off` hides `execute_js` in every mode. If a tool named below is not in your list, your mode leaves it out: do not call it, do not guess its arguments, use the fallback.
+
+| Not in your list | Where it exists | Fallback |
+|---|---|---|
+| `explain_error`, `plan_read_batch` | `expert` only | Read the error text yourself; use `recent_files` and `search` to find files |
+| `pr_*`, `ci_*` | `expert` only | Tell the user which mode they need (see venira-git-pr, venira-debug-ci) |
+| `symbol_references`, `dependency_graph` | `default`, `expert` | `search` for the symbol name |
+| `apply_patch`, `copy_path`, `diff_files`, `get_file_info` | `default`, `expert` | `edit_file` (`edits[]`), `read_file` plus `write_file`, `git action=diff`, `list_files` |
+| `health`, `cache_clear`, `read_audit` | `default`, `expert` | Ask the user to run them, or skip |
+
 ## Ground rules
 
-- Stay inside the workspace. Paths are workspace-relative; forward slashes work on Windows too.
+- Stay inside the workspace. Paths are workspace-relative; forward slashes work on Windows too. If the project lives in another folder, call `switch_workspace` with its absolute path (available in every mode). Under `trusted` or `off` it reaches any existing directory; under `strict` or `balanced` only the roots listed in `VENIRA_WORKSPACE`, and it is refused when that is unset.
 - Read before you write. Never edit from memory of a file. Re-read when anything else may have touched it.
 - Make the smallest change that solves the task. No drive-by reformatting or unrelated cleanups.
-- Never put secrets in files, commands or chat. Store tokens with `secret` (prefer `value_env`) and inject them with `secret_env` on `shell_run`.
+- Never put secrets in files, commands, chat or the memory note. Store tokens with `secret` (prefer `value_env`) and inject them with `secret_env` on `shell_run`.
 - Delete, overwrite, move-over and destructive git operations only when the user asked, and only after a snapshot.
+- Pass a short `reason` (max 400 characters) on mutating calls; it lands in the audit trail.
 - If intent is ambiguous and the change is hard to undo, ask one short question. Otherwise proceed and state your assumptions in the report.
 
 ## 1. Orient
 
-- `memory` `action=read` (after `recent_files`): if a handoff note exists for this workspace, read it first — it is the previous AI's goal, decisions, files touched and next steps. `exists=false` is normal on a first run; start the task normally and leave a note before you finish.
 - `recent_files` (depth 2-3, limit 20-30) shows what moved lately and which files are in play.
-- In an unfamiliar area, `plan_read_batch` with a one-line task description, then run the `read_batch` it proposes (max 8 files per call).
-- For big files use `outline_symbol` first, then `read_file` with `start_line`/`end_line` or `ranges`.
-- Never guess paths. Use `search` (`file_name`, `literal_content`, `definition`) or `list_files`.
+- `memory` `action=read` right after it: if a handoff note exists, it is the previous AI's goal, decisions, files touched and next steps (see venira-memory). Keep its `version` for the final write. `exists=false` is normal on a first run.
+- In an unfamiliar area, `plan_read_batch` (expert only) with a one-line task description returns a ready `read_file` call. Without it, `search` and `recent_files` do the same job by hand.
+- Read several files in one `read_file` call with `requests[]` (max 8 per call). For big files use `outline_symbol` first, then `read_file` with `start_line`/`end_line` or `ranges[]`. Follow `next_start_line` when `truncated`.
+- Never guess paths. Use `search` (`file_name`, `directory_name`, `literal_content`, `definition`) or `list_files`.
 - Read project instructions if they exist (AGENTS.md, CONTRIBUTING.md, README) before the first edit.
 
 ## 2. Checkpoint
@@ -82,27 +106,28 @@ Create a snapshot (`snapshot`, `action=create`, narrow `paths`, label like `befo
 | Need | Tool |
 |---|---|
 | One targeted change | `edit_file` with exact `old_text`, plus `expected_sha256`; use `edits[]` for several replacements in one file |
-| Several files that must land together | `edit_batch` (all-or-nothing, automatic rollback) |
-| Change that arrives as a diff | `apply_patch`, `dry_run=1` first |
-| New file | `write_file` `mode=create`, `create_dirs=1` |
+| Several files that must land together | `edit_file` with `edits[]` where each item carries its own `relative_path` (all-or-nothing, automatic rollback) |
+| Change that arrives as a diff | `apply_patch`, `dry_run=true` first |
+| New file | `write_file` `mode=create` (makes parent folders) |
 | Replace a whole file | `write_file` `mode=overwrite` with `expected_sha256`, after a snapshot |
+| New empty folder | `create` |
 | Rename or move | `move_path` (not undoable, snapshot first) |
 | Duplicate | `copy_path` |
-| Delete | `delete_path` (`recursive=1` for folders), only on request, snapshot first |
+| Delete | `delete_path` (`recursive=true` for folders), only on request, snapshot first |
 
-Before changing a shared symbol, signature or file name, run `change_impact` (pass `symbols` or `files`) to list dependents and the tests affected. Pass a short `reason` on mutating calls so the audit trail explains why.
+Before changing a shared symbol, signature or file name, check `symbol_references` for its usages; `dependency_graph` shows the structure around it.
 
 ## 4. Verify
 
-- Review the change with `git_diff` (`include_patch=1`) or `diff_files`.
-- Run the narrowest check first (type-check or one test), then the full suite once before finishing. Use `shell_run` with `background=0` for short commands. For long ones use `background=1`, then `shell_status` with `wait_seconds` until `running=false`.
+- Review the change with `git action=diff` (`include_patch=true`) or `diff_files`.
+- Run the narrowest check first (type-check or one test), then the full suite once before finishing. `shell_run` runs in the background by default and returns a `run_id`: poll `shell_status` with `wait_seconds` until `running=false`. Use `background=false` for short commands whose output you need now. `ok=true` only means the call ran; read `command_status` and `exit_code`.
 - Pick the shell explicitly when syntax matters. Windows PowerShell 5.1 has no `&&`: chain with `;`, or use `pwsh` or `bash`.
-- On failure, pass the stderr to `explain_error`, confirm the cause in the code, then fix. Do not retry blindly.
+- On failure, read the stderr tail; in `expert` mode `explain_error` matches known signatures. Confirm the cause in the code, then fix. Do not retry blindly.
 - Fix and re-verify until clean. If you cannot run a check, say so instead of implying it passed.
 
 ## 5. Roll back
 
-`snapshot` `action=restore` with the id: first `dry_run=1` to preview, then `verify=1`. Use `paths` to restore only some files. Use `delete_extra=1` only when you really want files created after the snapshot removed. Restore beats hand-reverting because it is exact.
+`snapshot` `action=restore` with the id: first `dry_run=true` to preview, then `verify=true`. Use `paths` to restore only some files. Use `delete_extra=true` only when you really want files created after the snapshot removed. Restore beats hand-reverting because it is exact.
 
 ## Error recovery
 
@@ -110,22 +135,22 @@ Before changing a shared symbol, signature or file name, run `change_impact` (pa
 |---|---|---|
 | `not_found` | Wrong path | `search` for the name. Do not guess. |
 | `old_text_not_found` | File changed, or whitespace or line endings differ | Read `data.mismatch` and `data.context`, re-read that range, retry with exact text |
-| `old_text_ambiguous` | Text matches several places | Widen `old_text` with surrounding lines. `replace_all=1` only if every match should change |
+| `old_text_ambiguous` | Text matches several places | Widen `old_text` with surrounding lines. `replace_all=true` only if every match should change |
 | `expected_sha256` refused | File changed since you read it | Re-read, re-apply the change. Never force it |
-| `conflict` | Target already exists | Choose another path, or snapshot then `overwrite` if intended |
-| `batch_failed` | Everything was rolled back (`rollback_succeeded`) | Fix the item named in `data.executed` and `data.skipped`, rerun the batch |
-| `approval_required` | A human must approve | Tell the user, give `data.approval.approve_command` or use `approval_wait_ms`, retry once with `approval_id`. Do not work around it |
-| `repeated_failure` | The identical command already failed | Read `data.previous.stderr_tail` and change the command. `retry_failed=1` only for flaky or environmental failures |
+| `conflict` | Target already exists, or a `memory` write used a stale `if_version` | Choose another path, or snapshot then `overwrite` if intended; for `memory` re-read and merge |
+| `batch_failed` | A multi-file `edit_file` or `apply_patch` rolled everything back (`rollback_succeeded`) | Fix the item or hunk named in the result, rerun the whole call |
+| `approval_required` | A human must approve | Tell the user, give `data.approval.approve_command` or use `approval_wait_s`, retry once with `approval_id`. Do not work around it |
+| `repeated_failure` | The identical command already failed | Read `data.previous.stderr_tail` and change the command. `retry_failed=true` only for flaky or environmental failures |
 | `truncated: true` | Output was cut | Continue with `start_line=next_start_line`, or narrow `relative_path`, `limit` or `depth` |
 | Odd or stale results | Cache out of sync after external changes | `cache_clear`, then `health` (sections `warnings`, `posture`) |
 
-A `trimmed` flag or "Output mode compact" hint only means the payload was shortened. It is not an error.
+`ok:false` with `retryable:false` is final: follow the envelope's `hint` and `next_actions`. A `trimmed` flag or "Output mode compact" hint only means the payload was shortened. It is not an error.
 
 ## Final report
 
-Before the report, `memory` `action=write` the handoff note: goal, decisions made, files touched, next steps (plain markdown, max 6000 bytes, replaces the previous note). Skip it only for a trivial one-shot task with nothing worth handing off. No secrets in the note.
+Before the report, write the handoff note: `memory` `action=write` with goal, decisions made, files touched, next steps (plain markdown, max 10000 bytes, replaces the previous note; pass `if_version` from your read). Skip it only for a trivial one-shot task with nothing worth handing off. No secrets in the note.
 
-Keep it short and factual: files changed, snapshot id (if any), checks run and their result, and anything left undone or assumed.
+Keep the report short and factual: files changed, snapshot id (if any), checks run and their result, and anything left undone or assumed.
 
 <!-- /venira-skill:venira-coding-workflow -->
 
@@ -139,31 +164,35 @@ description: Diagnose and fix failing builds, tests, type errors, and CI runs us
 
 Find the root cause from evidence (logs, error text), fix it, and prove the fix. Retrying without reading the log wastes CI minutes and hides real problems.
 
+## Which tools you have
+
+`ci_status`, `ci_logs`, `ci_wait`, `ci_trigger`, `ci_control` and `explain_error` exist only when the server runs with `VENIRA_TOOL_MODE=expert` (they are not in `default` or `core`), and the CI tools also need a git-host credential (for GitHub, `github_connect` or `GITHUB_TOKEN`). If they are not in your tool list, do not improvise: debug locally from the command output (§1, §2, §3), ask the user to paste the failing job's log, and say that CI inspection needs expert mode.
+
 ## 1. Get the evidence
 
-- Local failure: reproduce with `shell_run` (`background=0` for short commands). Capture the stderr tail.
-- CI failure: `ci_status` with `pr`, `branch`, or `ref` to find the failing run. Pass `run_id` to see its jobs, then `ci_logs` with the failing `job_id` (start with the default tail, widen `tail_lines` only if needed).
+- Local failure: reproduce with `shell_run` (`background=false` for short commands, otherwise poll `shell_status`). Read `command_status` and `exit_code`, and capture the stderr tail.
+- CI failure: `ci_status` with `pr`, `branch`, or `ref` to find the failing run (pass at most one of `run_id`/`ref`/`pr`/`branch`). Pass `run_id` to see its jobs, then `ci_logs` with the failing `job_id` (start with the default tail, widen `tail_lines` only if needed).
 
 ## 2. Classify the failure
 
-Pass the error block to `explain_error`. It matches known signatures (TypeScript, Python, git, npm, GitHub) offline and returns likely cause plus next actions. Treat that as a hypothesis and confirm it against the code:
-- Locate the failing file and line with `search` and `read_file` (ranges).
-- If the failure points at a changed symbol, check `change_impact`.
+In `expert` mode pass the error block to `explain_error` (`error_text` or `log_tail`). It matches known signatures (TypeScript, Python, git, npm, GitHub, Venira codes) offline and returns likely cause plus next actions. Without it, read the error yourself. Either way treat the diagnosis as a hypothesis and confirm it against the code:
+- Locate the failing file and line with `search` and `read_file` (`ranges[]`).
+- If the failure points at a changed symbol, check `symbol_references` for its usages (`default` and `expert` modes; in `core` use `search`).
 - Separate three causes: a code bug, a flaky or environment problem (timeouts, network, cache), and a config or dependency drift. Each has a different fix.
 
 ## 3. Fix
 
-Follow the venira-coding-workflow habits: snapshot if the fix is multi-file, edit surgically, then re-run the exact failing command locally. If `shell_run` answers `repeated_failure`, read `data.previous.stderr_tail` and change the approach instead of passing `retry_failed=1`.
+Follow the venira-coding-workflow habits: snapshot if the fix is multi-file, edit surgically, then re-run the exact failing command locally. If `shell_run` answers `repeated_failure`, read `data.previous.stderr_tail` and change the approach instead of passing `retry_failed=true`.
 
 ## 4. Confirm on CI
 
-- Push (via `shell_run`, e.g. `git push`), then `ci_wait` on the branch or PR. If `terminal=false`, call again with the same selector.
-- Use `ci_control` with `retry_failed` only for confirmed flaky jobs, and always give a `reason`.
-- Use `ci_trigger` only when a workflow supports manual dispatch or no new commit is available.
+- Push with `git action=push` (`set_upstream=true` the first time), then `ci_wait` on the branch or PR. One `ci_wait` call lasts at most `timeout_ms` (default 45s, max 110s); if `terminal=false`, call again with the same selector.
+- Use `ci_control` (`action=retry_failed` or `cancel`, needs `run_id` and a `reason`) only for confirmed flaky jobs or when the user asked, and confirm the effect with `ci_status` since it is asynchronous. Bitbucket cannot retry.
+- Use `ci_trigger` only when a workflow supports manual dispatch (GitHub `workflow_dispatch`) or no new commit is available.
 
 ## Report
 
-State the root cause in one or two sentences, the fix, and the evidence that it works (local command result and CI overall status). If it was flaky or environmental, say so plainly rather than claiming a code fix.
+State the root cause in one or two sentences, the fix, and the evidence that it works (local command result and CI overall status). If it was flaky or environmental, say so plainly rather than claiming a code fix. If CI could not be checked because the tools were missing, say that instead of implying it was green.
 
 <!-- /venira-skill:venira-debug-ci -->
 
@@ -177,36 +206,42 @@ description: Git and pull-request workflow using Venira tools - inspect status, 
 
 Make each step explicit and reversible. Merging and pushing change shared state, so do them only when the user asked.
 
+## Which tools you have
+
+`git` (status, diff, log, branch, commit, stash, push) is available in every tool mode, `core` included. The PR and CI tools (`pr_create`, `pr_list`, `pr_comment`, `pr_merge`, `pr_close`, `pr_reopen`, `ci_status`, `ci_wait`) exist only with `VENIRA_TOOL_MODE=expert`, and they need a git-host credential (for GitHub, `github_connect` or `GITHUB_TOKEN`). If they are not in your tool list, do steps 1-4 with `git`, then tell the user the PR must be opened with expert mode or by hand, and hand over a one-line title and a body (summary and test plan) they can paste. Do not shell out to another CLI to get around it.
+
 ## 1. Inspect
 
-Call `git_status` (branch, ahead/behind, changed files) and `git_diff` to see exactly what would be committed. Use `git_log` for recent commit style so new messages match the repo.
+Call `git action=status` (branch, ahead/behind, changed files) and `git action=diff` to see exactly what would be committed. Use `git action=log` for recent commit style so new messages match the repo.
 
 ## 2. Branch
 
-- New work goes on a branch: `git_branch` action `create` (optionally `from`), then `switch`.
-- Need to pause? `git_stash` push (add `include_untracked=1` when needed), then `apply` over `pop` so a copy is kept until you are sure.
+- New work goes on a branch: `git action=branch sub=create` (optionally `from`), then `sub=switch`.
+- Need to pause? `git action=stash sub=push` (add `include_untracked=true` when needed), then `sub=apply` over `sub=pop` so a copy is kept until you are sure.
 
 ## 3. Commit
 
-- Stage and commit with `git_commit`, passing explicit `paths` so unrelated files stay out.
-- Write an imperative subject line, matching the repo's convention from the log. Put the why in the body.
+- Stage and commit with `git action=commit`, passing explicit `paths` so unrelated files stay out. With no `paths` it commits what is already staged.
+- Write an imperative subject line, matching the repo's convention from the log (conventional commits where the repo uses them). Put the why in the body.
 - Amend only when the user asks. Never use it to rewrite commits that were already pushed.
 
 ## 4. Push and open the PR
 
-`git_commit` does not push. Push with `shell_run` (`git push -u origin <branch>`). Under the current policy: plain push is allowed without approval everywhere except `strict` (needs approval there); force pushes (`--force`, `+ref`, `--force-with-lease`), delete pushes, `--mirror`, and pushes to URLs need approval in `balanced` and `strict`, and run freely in `permissive` and `off`. If one asks for approval, tell the user instead of trying to dodge it.
+`git action=commit` does not push. Push with `git action=push`: one local branch (`ref`, default the current one) to a configured remote name (`remote`, default its own remote or `origin`), `set_upstream=true` the first time, `dry_run=true` to preview. It never forces, deletes or takes a URL, and it is refused under the `strict` profile. A rejected push (`conflict`) means the remote moved: integrate first, never force. Missing credentials come back as `invalid_request`.
 
-Then `pr_create` with a one-line imperative title and a body holding a summary and a test plan. Use `draft=1` if the work is unfinished.
+Anything else goes through `shell_run` (`git push ...`) under the shell policy: plain push is allowed without approval everywhere except `strict` (needs approval there); force pushes (`--force`, `+ref`, `--force-with-lease`), delete pushes, `--mirror`, and pushes to URLs need approval in `balanced` and `strict`, and run freely in `permissive` and `off`. If one asks for approval, tell the user instead of trying to dodge it.
+
+Then `pr_create` (expert mode) with a one-line imperative title and a body holding a summary and a test plan. `head` defaults to the current branch and `base` to the repo default. Use `draft=true` if the work is unfinished. If a PR already exists for the branch, use `pr_comment` instead.
 
 ## 5. Watch CI and respond
 
-- `ci_wait` with the `pr` selector. On failure, switch to the venira-debug-ci skill.
+- `ci_wait` with the `pr` selector. If `terminal=false`, call again with the same selector. On failure, switch to the venira-debug-ci skill.
 - Reply to reviewers with `pr_comment` (use `path` and `line` for inline notes).
-- `pr_close` / `pr_reopen` for abandoned or mistakenly closed PRs.
+- `pr_list` finds a PR number. `pr_close` / `pr_reopen` for abandoned or mistakenly closed PRs (Bitbucket cannot reopen).
 
 ## 6. Merge only on request
 
-Merge with `pr_merge` only when the user asked and `ci_status` is green. Ask or infer the method (`merge`, `squash`, `rebase`) and whether to delete the branch. Report the resulting sha.
+Merge with `pr_merge` only when the user asked and `ci_status` is green. Ask or infer the method (`merge`, `squash`, `rebase`) and whether to delete the head branch. It refuses closed or conflicting PRs. Report the resulting sha.
 
 <!-- /venira-skill:venira-git-pr -->
 
@@ -220,7 +255,7 @@ description: Use the `memory` tool well - read the workspace handoff note at the
 
 `memory` is one markdown file per workspace that outlives the chat window. The AI that is about to run out of context overwrites it; the next AI reads it first and picks up where the previous one stopped. It is plain text on disk at `<workspace>/.venira/memory.md` — a human can open or edit it too. One note per workspace, always replaced wholesale, never appended. (Notes written before v4.4.0 live in the data dir and are still read as a fallback; the next write moves them into `<workspace>/.venira/memory.md`.) Add `.venira/` to `.gitignore` if you do not want the note committed.
 
-Clients may prefix tool names (for example `mcp__venira__memory`). The tool name (without the server prefix) is the stable name.
+Clients may prefix tool names (for example `mcp__venira__memory`). The tool name (without the server prefix) is the stable name. `memory` is available in every tool mode, `core` included.
 
 ## When to use
 
@@ -230,12 +265,12 @@ Clients may prefix tool names (for example `mcp__venira__memory`). The tool name
 
 ## Rules
 
-- **`action=read` first, always.** `exists=false` is normal on a first run (you get a hint), start the task normally.
-- **Write = full overwrite.** `content` replaces the whole note; nothing is appended. Empty or missing `content` is refused and the old note is kept.
-- **Cap is 6000 bytes** (UTF-8). Over the cap → `invalid_request`, old note kept. Write tight; cut stale lines rather than cramming.
-- **No secrets, ever.** No API keys, tokens, passwords, connection strings, personal data. The note is unencrypted plain text on disk.
-- **Not for lasting docs or history.** Use `write_file` for docs that belong in the repo, `git_log`/`read_audit` for "what happened". The note is a *handoff scratchpad*, not a file with a future.
-- **No appendix bloat.** A stale block still costs every future session 6000-token-adjacent overhead; rewrite honestly each time.
+- **`action=read` first, always.** `exists=false` is normal on a first run (you get a hint), start the task normally. A read returns `version` (12 hex characters, or `new` while no note exists): keep it.
+- **Write = full overwrite, guarded by `if_version`.** `content` replaces the whole note; nothing is appended. Pass `if_version` set to the `version` from your last read (or last write). If the note changed since, nothing is written and you get `conflict` naming the current version: read again, merge the other session's changes into yours, write with the new version. A successful write returns the new `version`, so consecutive writes need no re-read. Without `if_version` the write overwrites blindly (kept for older clients) and the result hints to pass it.
+- **Cap is 10000 bytes** (UTF-8). Over the cap → `invalid_request`, old note kept. Write tight; cut stale lines rather than cramming. Empty or missing `content` is refused too.
+- **No secrets, ever.** No API keys, tokens, passwords, connection strings, personal data. The note is unencrypted plain text on disk and is not audit-logged.
+- **Not for lasting docs or history.** Use `write_file` for docs that belong in the repo, `git action=log` or `read_audit` for "what happened". The note is a *handoff scratchpad*, not a file with a future.
+- **No appendix bloat.** A stale block costs every future session context; rewrite honestly each time. Other agents may share the note (that is why the cap is 10000), so keep their still-valid lines when you merge.
 
 ## What goes in the note
 
@@ -250,9 +285,9 @@ Plain markdown, in this order, cut whatever does not fit:
 
 ## Workflow
 
-1. Read: `memory` `action=read` → if `exists=true`, skim, then cross-check with `recent_files` / `git_status` before acting on it.
+1. Read: `memory` `action=read` → if `exists=true`, skim, then cross-check with `recent_files` / `git action=status` before acting on it. Remember `version`.
 2. Work normally; update nothing mid-task.
-3. Before the final report (or when you notice context filling): `memory` `action=write` with the six sections. If there is nothing to hand off, skip the write.
+3. Before the final report (or when you notice context filling): `memory` `action=write` with the six sections and `if_version`. On `conflict`, read, merge, write again. If there is nothing to hand off, skip the write.
 4. The final chat report stays short and factual — the note carries the detail, the chat does not need to repeat it.
 
 ## Examples
@@ -291,10 +326,11 @@ Bad note: "worked on the bug, DB fixed, some tests fail, continue later" — use
 
 | Signal | Meaning | Do this |
 |---|---|---|
-| `exists=false` | No note yet | Normal. Start the task, write one at the end |
-| `invalid_request` + "over the 6000 byte cap" | Note too long | Cut stale/verbose sections, rewrite shorter |
-| `invalid_request` + "empty content" | Missing or blank `content` | Write the full note, not an empty placeholder |
-| `invalid_request` + "action must be" | Unknown action | Use `read` or `write` |
+| `exists=false` | No note yet | Normal. Start the task, write one at the end (`if_version=new` is accepted) |
+| `conflict` | The note changed since your read | Nothing was written. Read again, merge, write with the new `version` |
+| `invalid_request` + "over the 10000 byte cap" | Note too long | Cut stale/verbose sections, rewrite shorter |
+| `invalid_request` + "non-empty `content`" | Missing or blank `content` | Write the full note, not an empty placeholder |
+| `invalid_request` + "`if_version` must be a string" | Wrong type | Copy `version` from the read result as text |
 | Note stale vs reality | Files changed since write | Trust the code, not the note; update the note next write |
 
 <!-- /venira-skill:venira-memory -->
